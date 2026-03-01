@@ -14,6 +14,10 @@ terraform {
   }
 }
 
+provider "azurerm" {
+  features {}
+}
+
 resource "azurerm_resource_group" "lab-template-budget" {
   name     = "rg-terraform-lab-template-budget"
   location = "westeurope"
