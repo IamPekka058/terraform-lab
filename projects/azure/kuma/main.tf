@@ -2,7 +2,7 @@ data "azurerm_client_config" "current" {}
 
 resource "azurerm_resource_group" "rg-kuma" {
   name     = "rg-terraform-kuma"
-  location = "westeurope"
+  location = "germanywestcentral"
 }
 
 module "budget" {
