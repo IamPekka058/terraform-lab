@@ -86,8 +86,6 @@ resource "azapi_resource" "kuma_auth_config" {
       globalValidation = {
         unauthenticatedClientAction = "RedirectToLoginPage"
         redirectToProvider          = "azureActiveDirectory"
-        allowedExternalRedirectUrls = ["https://${azurerm_container_app.kuma_app.ingress[0].fqdn}/.auth/login/aad/callback"]
-
       }
       identityProviders = {
         azureActiveDirectory = {
