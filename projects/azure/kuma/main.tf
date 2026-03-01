@@ -31,6 +31,11 @@ resource "azurerm_container_app_environment" "kuma_env" {
 
 resource "azuread_application" "kuma_auth" {
   display_name = "kuma-auth-app"
+  web {
+    implicit_grant {
+      id_token_issuance_enabled     = true
+    }
+  }
 }
 
 resource "azuread_service_principal" "kuma_auth_sp" {
