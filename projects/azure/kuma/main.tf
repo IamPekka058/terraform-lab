@@ -31,14 +31,6 @@ resource "azurerm_container_app_environment" "kuma_env" {
 
 resource "azuread_application" "kuma_auth" {
   display_name = "kuma-auth-app"
-
-  web {
-    redirect_uris = ["https://ca-uptime-kuma.${azurerm_container_app_environment.kuma_env.default_domain}/.auth/login/aad/callback"]
-
-    implicit_grant {
-      id_token_issuance_enabled = true
-    }
-  }
 }
 
 resource "azuread_service_principal" "kuma_auth_sp" {
@@ -102,6 +94,9 @@ resource "azapi_resource" "kuma_auth_config" {
             clientId                = azuread_application.kuma_auth.client_id
             clientSecretSettingName = "microsoft-client-secret"
             openIdIssuer            = "https://sts.windows.net/${data.azurerm_client_config.current.tenant_id}/v2.0"
+          }
+          login = {
+            allowedExternalRedirectUrls = ["https://${azurerm_container_app.kuma_app.latest_revision_fqdn}/.auth/login/aad/callback"]
           }
         }
       }
