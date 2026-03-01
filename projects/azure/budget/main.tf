@@ -9,7 +9,7 @@ terraform {
     organization = "IamPekka058"
 
     workspaces {
-      name = "terraform-lab"
+      name = "azure-budget-lab"
     }
   }
 }
