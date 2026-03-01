@@ -86,6 +86,7 @@ resource "azapi_resource" "kuma_auth_config" {
       globalValidation = {
         unauthenticatedClientAction = "RedirectToLoginPage"
         redirectToProvider          = "azureActiveDirectory"
+        allowedExternalRedirectUrls = ["https://${azurerm_container_app.kuma_app.ingress[0].fqdn}/.auth/login/aad/callback"]
 
       }
       identityProviders = {
@@ -94,9 +95,6 @@ resource "azapi_resource" "kuma_auth_config" {
             clientId                = azuread_application.kuma_auth.client_id
             clientSecretSettingName = "microsoft-client-secret"
             openIdIssuer            = "https://sts.windows.net/${data.azurerm_client_config.current.tenant_id}/v2.0"
-          }
-          login = {
-            allowedExternalRedirectUrls = ["https://${azurerm_container_app.kuma_app.latest_revision_fqdn}/.auth/login/aad/callback"]
           }
         }
       }
