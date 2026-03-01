@@ -92,8 +92,9 @@ resource "azapi_resource" "kuma_auth_config" {
         enabled = true
       }
       globalValidation = {
-        requireAuthentication       = true
         unauthenticatedClientAction = "RedirectToLoginPage"
+        redirectToProvider          = "azureActiveDirectory"
+
       }
       identityProviders = {
         azureActiveDirectory = {
