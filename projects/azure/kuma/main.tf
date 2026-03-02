@@ -14,6 +14,37 @@ module "budget" {
   alert_email       = var.alert_email
 }
 
+resource "random_string" "storage_suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
+
+resource "azurerm_storage_account" "kuma_storage" {
+  name                     = "stkuma${random_string.storage_suffix.result}"
+  resource_group_name      = azurerm_resource_group.rg-kuma.name
+  location                 = azurerm_resource_group.rg-kuma.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+
+resource "azurerm_storage_share" "kuma_share" {
+  name               = "kuma-data"
+  storage_account_id = azurerm_storage_account.kuma_storage.id
+  quota              = 1
+}
+
+resource "azurerm_container_app_environment_storage" "kuma_env_storage" {
+  name                         = "kuma-storage-link"
+  container_app_environment_id = azurerm_container_app_environment.kuma_env.id
+  account_name                 = azurerm_storage_account.kuma_storage.name
+  share_name                   = azurerm_storage_share.kuma_share.name
+  access_key                   = azurerm_storage_account.kuma_storage.primary_access_key
+  access_mode                  = "ReadWrite"
+}
+
 resource "azurerm_log_analytics_workspace" "kuma_logs" {
   name                = "log-uptime-kuma"
   location            = azurerm_resource_group.rg-kuma.location
@@ -29,11 +60,19 @@ resource "azurerm_container_app_environment" "kuma_env" {
   log_analytics_workspace_id = azurerm_log_analytics_workspace.kuma_logs.id
 }
 
+locals {
+  container_fqdn = "ca-uptime-kuma.${azurerm_container_app_environment.kuma_env.default_domain}"
+}
+
 resource "azuread_application" "kuma_auth" {
   display_name = "kuma-auth-app"
   web {
+    redirect_uris = [
+      "https://${local.container_fqdn}/.auth/login/aad/callback"
+    ]
+
     implicit_grant {
-      id_token_issuance_enabled     = true
+      id_token_issuance_enabled = true
     }
   }
 }
@@ -58,11 +97,23 @@ resource "azurerm_container_app" "kuma_app" {
   }
 
   template {
+    
+    volume {
+      name         = "kuma-volume"
+      storage_name = azurerm_container_app_environment_storage.kuma_env_storage.name
+      storage_type = "AzureFile"
+    }
+
     container {
       name   = "uptime-kuma"
       image  = "louislam/uptime-kuma:latest"
       cpu    = 0.5
       memory = "1Gi"
+
+      volume_mounts {
+        name = "kuma-volume"
+        path = "/app/data"
+      }
     }
   }
 
@@ -76,6 +127,10 @@ resource "azurerm_container_app" "kuma_app" {
       latest_revision = true
     }
   }
+
+  depends_on = [
+    azurerm_container_app_environment_storage.kuma_env_storage
+  ]
 }
 
 resource "azapi_resource" "kuma_auth_config" {
@@ -103,8 +158,12 @@ resource "azapi_resource" "kuma_auth_config" {
       }
     }
   })
+  depends_on = [
+    azurerm_container_app.kuma_app,
+    azuread_application_password.kuma_auth_pwd
+  ]
 }
 
 output "kuma_secure_url" {
-  value = "https://${azurerm_container_app.kuma_app.latest_revision_fqdn}"
+  value = "https://${local.container_fqdn}"
 }
